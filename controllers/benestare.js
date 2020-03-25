@@ -189,7 +189,7 @@ exports.getListaAnomali = (req, res, next) => {
         numeroPratica: 1,
         anno: 1,
         benestare: 1
-    });
+    }).sort({ 'benestare.Jun.value': -1 });;
     if(pageSize && currentPage){
         queryConto.skip(pageSize * (currentPage - 1))
             .limit(pageSize);
@@ -311,7 +311,7 @@ exports.getListaScambioAnomali = (req, res, next) => {
         numeroPratica: 1,
         anno: 1,
         'benestare.1Semestre.value': 1      
-    });
+    }).sort({ 'benestare.1Semestre.value': -1 });
     if(pageSize && currentPage){
         queryConto.skip(pageSize * (currentPage - 1))
             .limit(pageSize);

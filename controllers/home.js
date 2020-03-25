@@ -262,3 +262,140 @@ exports.getTotaleAnomali = (req, res, next) => {
         res.status(500).json({message: error});
     });  
 }
+
+exports.getAnomali = (req, res, next) => {
+  const tipo = +req.body.tipo;
+  const discostamento = +req.body.discostamento;
+
+  contoQuery(tipo, discostamento)
+  .then(document => {
+    if(document){
+        res.status(200).json({
+            message: 'Benestare fetched succesfully!!',
+            res: { 
+                doc: document,
+                discostamento: discostamento
+            }
+        });
+    }else
+        res.status(404).json({ message: 'Benestare not found!'});
+  })
+  .catch(error => {
+      res.status(500).json({message: error});
+  });  
+}
+
+
+const contoQuery = (tipo, discostamento) => {
+  if(tipo == 1){
+    return FTV.aggregate().lookup({
+        from: 'FTV_avg',
+        localField: 'numeroPratica',
+        foreignField: '_id',
+        as: 'avg'
+      })
+      .unwind('$avg')
+      .addFields({
+          diffPerc: {
+            $multiply: [
+              {
+                $divide: [
+                  {
+                    $subtract: [
+                      '$benestare.Jun.value',
+                      '$avg.avg.Jun.value'
+                    ]
+                  },
+                  '$avg.avg.Jun.value'
+                ]
+              },
+              100
+            ]
+          }
+      })
+      .match({
+          diffPerc: {
+            $gt: discostamento
+          },
+          anno:2019
+      })
+      .group({
+          _id: {
+            numeroPratica: '$numeroPratica',
+            anno: '$anno'
+          },
+          count: {
+            $sum: 1
+          },
+          total: {
+            $sum: '$benestare.Jun.value'
+          } 
+      })
+      .group({
+          _id: '',
+          DocumentiTotali: {
+            $sum: '$count'
+          },
+          BenestareTotali: {
+            $sum: '$total'
+          }
+      });
+  }
+  else{
+    return Scambio.aggregate().lookup({
+      from: 'ScambioSulPosto_avg',
+      localField: 'numeroPratica',
+      foreignField: '_id',
+      as: 'avg'          
+      })
+      .unwind('$avg')
+      // .match({
+      //   "avg.avg.1Semestre.value": {$gt: 0}
+      // })
+      .addFields({
+        diffPerc: {
+          $multiply: [
+            {
+              $divide: [
+                {
+                  $subtract: [
+                    '$benestare.1Semestre.value',
+                    '$avg.avg.1Semestre.value'
+                  ]
+                },
+                '$avg.avg.1Semestre.value'
+              ]
+            },
+            10
+          ]
+        }        
+      })
+      .match({
+        diffPerc: {
+          $gt: discostamento
+        },
+        anno:2017 
+      })
+      .group({
+        _id: {
+          numeroPratica: '$numeroPratica',
+          anno: '$anno'
+        },
+        count: {
+          $sum: 1
+        },
+        total: {
+          $sum: '$benestare.1Semestre.value'
+        } 
+    })
+    .group({
+        _id: '',
+        DocumentiTotali: {
+          $sum: '$count'
+        },
+        BenestareTotali: {
+          $sum: '$total'
+        }
+    });
+  }
+}
