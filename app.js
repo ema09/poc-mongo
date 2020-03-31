@@ -23,7 +23,7 @@ const app = express();
 
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({extended: false}));
-app.use('/images', express.static(path.join('backend/images')));
+app.use('/', express.static(path.join(__dirname,'angular')));
 
 app.use((req, res, next) => {
     res.setHeader('Access-Control-Allow-Origin', '*');
@@ -38,5 +38,8 @@ app.use("/api/benestare",benestareRoutes);
 app.use("/api/home",homeRoutes);
 app.use("/api/scambio",scambioRoutes);
 app.use("/api/chart",chartRoutes);
+app.use((req, res, next) => {
+    res.sendFile(path.join(__dirname,"angular", "index.html"));
+})
 
 module.exports = app;
