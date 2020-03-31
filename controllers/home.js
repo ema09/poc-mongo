@@ -4,8 +4,10 @@ const Scambio = require('../models/scambio');
 
 exports.getTotale = (req, res, next) => {
   let totConto;
+  let totScambio;
+  let numConto;
   FTV.aggregate().lookup({
-      from: 'FTV_avg',
+      from: 'ContoEnergia_avg',
       localField: 'numeroPratica',
       foreignField: '_id',
       as: 'avg'
@@ -113,10 +115,78 @@ exports.getTotale = (req, res, next) => {
   })
   .then(document => {
     if(document){
+      totScambio = document;
+      return FTV.aggregate()
+        .addFields({
+          valEconomico: {
+            $reduce:{
+              input:{
+                $objectToArray: '$benestare'
+              },
+              initialValue: 0,
+              in: { $sum: [ "$$value", "$$this.v.value" ] }
+            }
+          }
+        })
+        .group({
+          _id: {
+            numeroPratica: '$numeroPratica'
+          },
+          count: {$sum:1},
+          totEconomico: {$sum:'$valEconomico'}
+        })
+        .group({
+            _id: '',
+            totaleDocumenti: {
+              $sum: '$count'
+            },
+            totaleEconomico: {
+              $sum: '$totEconomico'
+            }
+        });
+    }else
+        res.status(404).json({ message: 'Benestare not found!'});
+  }).then(document => {
+    if(document){
+      numConto = document;
+      return Scambio.aggregate()
+      .addFields({
+        valEconomico: {
+          $reduce:{
+            input:{
+              $objectToArray: '$benestare'
+            },
+            initialValue: 0,
+            in: { $sum: [ "$$value", "$$this.v.value" ] }
+          }
+        }
+      })
+      .group({
+        _id: {
+          numeroPratica: '$numeroPratica'
+        },
+        count: {$sum:1},
+        totEconomico: {$sum:'$valEconomico'}
+      })
+      .group({
+          _id: '',
+          totaleDocumenti: {
+            $sum: '$count'
+          },
+          totaleEconomico: {
+            $sum: '$totEconomico'
+          }
+      });
+    }else
+        res.status(404).json({ message: 'Benestare not found!'});
+  }).then(document => {
+    if(document){
         res.status(200).json({
             message: 'Benestare fetched succesfully!!',
             conto: totConto,
-            scambio: document
+            scambio: totScambio,
+            numConto: numConto,
+            numScambio: document
         });
     }else
         res.status(404).json({ message: 'Benestare not found!'});
@@ -131,7 +201,7 @@ exports.getTotaleAnomali = (req, res, next) => {
     const discostamentoScambio = +req.params.scambio;
     let docContoEnergia;
     FTV.aggregate().lookup({
-        from: 'FTV_avg',
+        from: 'ContoEnergia_avg',
         localField: 'numeroPratica',
         foreignField: '_id',
         as: 'avg'
@@ -289,7 +359,7 @@ exports.getAnomali = (req, res, next) => {
 const contoQuery = (tipo, discostamento) => {
   if(tipo == 1){
     return FTV.aggregate().lookup({
-        from: 'FTV_avg',
+        from: 'ContoEnergia_avg',
         localField: 'numeroPratica',
         foreignField: '_id',
         as: 'avg'

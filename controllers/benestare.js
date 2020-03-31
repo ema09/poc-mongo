@@ -9,27 +9,46 @@ exports.getData = (req, res, next) => {
     if(tipo == 1){
         benQuery = FTV.aggregate().match(
             { numeroPratica: numPratica}
-            ).addFields({
+            ).lookup({
+              from: 'ContoEnergia_avg',
+              localField: 'numeroPratica',
+              foreignField: '_id',
+              as: 'avg'
+            })
+            .unwind('$avg')
+            .addFields({
                 monthList: {
                     $objectToArray: '$benestare'
-                }
+                },
+                mediaList: { $objectToArray: '$avg.avg' } 
             }).project({
                 numeroPratica:1,
                 anno: 1,
-                monthList: 1
+                monthList: 1,
+                mediaList: 1
             });
     }
     else{
         benQuery = Scambio.aggregate().match(
             { numeroPratica: numPratica}
-            ).addFields({
+            ).
+            lookup({
+              from: 'ScambioSulPosto_avg',
+              localField: 'numeroPratica',
+              foreignField: '_id',
+              as: 'avg'          
+            })
+            .unwind('$avg')
+            .addFields({
                 monthList: {
                     $objectToArray: '$benestare'
-                }
+                },
+                mediaList: { $objectToArray: '$avg.avg' } 
             }).project({
                 numeroPratica:1,
                 anno: 1,
-                monthList: 1
+                monthList: 1,
+                mediaList: 1
             });
     }
     benQuery
@@ -155,7 +174,7 @@ exports.getListaAnomali = (req, res, next) => {
     const discostamentoConto = +req.body.discostamento;
     let doc;
     const queryConto = FTV.aggregate().lookup({
-        from: 'FTV_avg',
+        from: 'ContoEnergia_avg',
         localField: 'numeroPratica',
         foreignField: '_id',
         as: 'avg'
@@ -177,7 +196,8 @@ exports.getListaAnomali = (req, res, next) => {
             },
             100
           ]
-        }
+        },
+        media: '$avg.avg.Jun.value'
     })
     .match({
         diffPerc: {
@@ -188,7 +208,9 @@ exports.getListaAnomali = (req, res, next) => {
     .project({
         numeroPratica: 1,
         anno: 1,
-        benestare: 1
+        benestare: 1,
+        media: 1,
+        diffPerc: 1
     }).sort({ 'benestare.Jun.value': -1 });;
     if(pageSize && currentPage){
         queryConto.skip(pageSize * (currentPage - 1))
@@ -198,7 +220,7 @@ exports.getListaAnomali = (req, res, next) => {
         if(document){
             doc = document;
             return FTV.aggregate().lookup({
-                from: 'FTV_avg',
+                from: 'ContoEnergia_avg',
                 localField: 'numeroPratica',
                 foreignField: '_id',
                 as: 'avg'
@@ -299,7 +321,8 @@ exports.getListaScambioAnomali = (req, res, next) => {
             },
             10
           ]
-        }        
+        },
+        media: '$avg.avg.1Semestre.value'     
       })
       .match({
         diffPerc: {
@@ -310,7 +333,9 @@ exports.getListaScambioAnomali = (req, res, next) => {
       .project({
         numeroPratica: 1,
         anno: 1,
-        'benestare.1Semestre.value': 1      
+        'benestare.1Semestre.value': 1,
+        media: 1,
+        diffPerc: 1     
     }).sort({ 'benestare.1Semestre.value': -1 });
     if(pageSize && currentPage){
         queryConto.skip(pageSize * (currentPage - 1))

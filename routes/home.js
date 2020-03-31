@@ -5,7 +5,7 @@ const router = express.Router();
 const checkAuth = require('../middleware/check-auth');
 
 router.get("/:conto&:scambio",checkAuth, homeController.getTotaleAnomali);
-router.get("/",checkAuth, homeController.getTotale);
+router.get("/", homeController.getTotale);
 router.post("/",checkAuth, homeController.getAnomali);
 
 
