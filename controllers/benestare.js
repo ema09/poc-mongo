@@ -30,7 +30,10 @@ exports.getData = (req, res, next) => {
     }
     else{
         benQuery = Scambio.aggregate().match(
-            { numeroPratica: numPratica}
+            { numeroPratica: numPratica,
+              'benestare.1Semestre.conguaglio':"Y",
+              anno: {$lt: 2016}
+            }
             ).
             lookup({
               from: 'ScambioSulPosto_avg',
@@ -122,16 +125,18 @@ exports.getPraticaScambio = (req, res, next) => {
     const currentPage = +req.query.page;
     const numPratica = req.query.pratica;
     const benQuery = Scambio.aggregate().match(
-        { numeroPratica: numPratica}
+        { numeroPratica: numPratica,
+          'benestare.1Semestre.conguaglio':"Y",
+          anno: {$lt: 2016}
+        }
         ).addFields({
-            monthList: {
-                $objectToArray: '$benestare'
-            }
-        }).unwind('monthList')
+            conguaglio: '$benestare.1Semestre.value'
+            
+        })
         .project({
             numeroPratica: 1,
             anno: 1,
-            monthList: 1
+            conguaglio: 1
         })
         ;
     let fetchedBen;
@@ -143,7 +148,10 @@ exports.getPraticaScambio = (req, res, next) => {
     .then(documents =>{
         fetchedBen = documents;
         return Scambio.aggregate().match(
-            { numeroPratica: numPratica}
+            { numeroPratica: numPratica,
+              'benestare.1Semestre.conguaglio':"Y"
+              
+            }
             ).addFields({
                 monthList: {
                     $objectToArray: '$benestare'
@@ -303,7 +311,9 @@ exports.getListaScambioAnomali = (req, res, next) => {
       })
       .unwind('$avg')
       .match({
-        "avg.avg.1Semestre.value": {$gt: 0}
+        "avg.avg.1Semestre.value": {$gt: 0},
+        anno: 2015,
+        'benestare.1Semestre.conguaglio':"Y"
       })
       .addFields({
         diffPerc: {
@@ -327,8 +337,7 @@ exports.getListaScambioAnomali = (req, res, next) => {
       .match({
         diffPerc: {
           $gt: discostamentoScambio
-        },
-        anno:2017 
+        }
       })
       .project({
         numeroPratica: 1,
@@ -352,7 +361,9 @@ exports.getListaScambioAnomali = (req, res, next) => {
               })
               .unwind('$avg')
               .match({
-                "avg.avg.1Semestre.value": {$gt: 0}
+                "avg.avg.1Semestre.value": {$gt: 0},
+                anno: 2015,
+                'benestare.1Semestre.conguaglio':"Y"
               })
               .addFields({
                 diffPerc: {
@@ -375,8 +386,7 @@ exports.getListaScambioAnomali = (req, res, next) => {
               .match({
                 diffPerc: {
                   $gt: discostamentoScambio
-                },
-                anno:2017 
+                }
               })
               .group({
                 _id: {

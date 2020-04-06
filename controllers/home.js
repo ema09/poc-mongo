@@ -65,9 +65,11 @@ exports.getTotale = (req, res, next) => {
           as: 'avg'          
         })
         .unwind('$avg')
-        // .match({
-        //   "avg.avg.1Semestre.value": {$gt: 0}
-        // })
+        .match({
+          "avg.avg.1Semestre.value": {$gt: 0},
+          anno: 2015,
+          'benestare.1Semestre.conguaglio':"Y"
+        })
         .addFields({
           diffPerc: {
             $multiply: [
@@ -85,9 +87,6 @@ exports.getTotale = (req, res, next) => {
               1
             ]
           }        
-        })
-        .match({
-          anno:2017 
         })
         .group({
           _id: {
@@ -200,6 +199,7 @@ exports.getTotaleAnomali = (req, res, next) => {
     const discostamentoConto = +req.params.conto;
     const discostamentoScambio = +req.params.scambio;
     let docContoEnergia;
+    
     FTV.aggregate().lookup({
         from: 'ContoEnergia_avg',
         localField: 'numeroPratica',
@@ -254,6 +254,7 @@ exports.getTotaleAnomali = (req, res, next) => {
     })
     .then(document =>{
         if(document){
+          
           docContoEnergia = document;
           return Scambio.aggregate().lookup({
             from: 'ScambioSulPosto_avg',
@@ -262,9 +263,11 @@ exports.getTotaleAnomali = (req, res, next) => {
             as: 'avg'          
           })
           .unwind('$avg')
-          // .match({
-          //   "avg.avg.1Semestre.value": {$gt: 0}
-          // })
+          .match({
+            "avg.avg.1Semestre.value": {$gt: 0},
+            anno: 2015,
+            'benestare.1Semestre.conguaglio':"Y"
+          })
           .addFields({
             diffPerc: {
               $multiply: [
@@ -286,8 +289,7 @@ exports.getTotaleAnomali = (req, res, next) => {
           .match({
             diffPerc: {
               $gt: discostamentoScambio
-            },
-            anno:2017 
+            }
           })
           .group({
             _id: {
@@ -419,9 +421,11 @@ const contoQuery = (tipo, discostamento) => {
       as: 'avg'          
       })
       .unwind('$avg')
-      // .match({
-      //   "avg.avg.1Semestre.value": {$gt: 0}
-      // })
+      .match({
+        "avg.avg.1Semestre.value": {$gt: 0},
+        anno: 2015,
+        'benestare.1Semestre.conguaglio':"Y"
+      })
       .addFields({
         diffPerc: {
           $multiply: [
@@ -443,8 +447,7 @@ const contoQuery = (tipo, discostamento) => {
       .match({
         diffPerc: {
           $gt: discostamento
-        },
-        anno:2017 
+        }
       })
       .group({
         _id: {
