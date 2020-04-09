@@ -44,9 +44,9 @@ exports.getData = (req, res, next) => {
             .unwind('$avg')
             .addFields({
                 monthList: {
-                    $objectToArray: '$benestare'
+                    $objectToArray: { '1Semestre':{ value:'$benestare.1Semestre.value'} }
                 },
-                mediaList: { $objectToArray: '$avg.avg' } 
+                mediaList: { $objectToArray: { '1Semestre': { value: '$avg.avg.1Semestre.value' }} } 
             }).project({
                 numeroPratica:1,
                 anno: 1,
